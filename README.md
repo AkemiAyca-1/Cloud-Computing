@@ -59,7 +59,7 @@ CREATE TABLE reportes (
 | 2 | `Sprint2` | Integrante 2 | Conexión Supabase, operaciones POST y GET en `app.js` |  Pendiente |
 | 3 | `Sprint3` | Integrante 3 | Despliegue Vercel, pruebas QA, documentación final |  Pendiente |
 
-## Instrucciones para el Integrante 2 (Día 2)
+## Instrucciones para el Integrante 2 (Día 2) ....
 
 1. Hacer `git pull origin Sprint1-Ayca` para obtener la base del proyecto.
 2. Abrir `js/app.js` y reemplazar los placeholders con las credenciales de Supabase:
@@ -71,13 +71,10 @@ CREATE TABLE reportes (
 4. Implementar la función de lectura (GET) que consulte la tabla `reportes` y renderice los resultados en `#table-body`.
 5. Verificar en entorno local con Live Server antes del commit.
 
-## Variables de entorno para Vercel (Día 3)
+## Variables de entorno para Vercel (Día 3) ...
 
 | Variable | Descripción |
 |----------|-------------|
 | `SUPABASE_URL` | URL del proyecto en Supabase |
 | `SUPABASE_ANON_KEY` | Clave pública anon de Supabase |
 
-## Equipo
-
-Proyecto académico — Cloud Computing — UMSA Jala University 2025
