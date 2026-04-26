@@ -55,9 +55,9 @@ CREATE TABLE reportes (
 
 | Día | Rama | Responsable | Entregable | Estado |
 |-----|------|-------------|-----------|--------|
-| 1 | `Sprint1-Ayca` | Integrante 1 | Infraestructura Supabase + repositorio + UI estática HTML/CSS | ✅ Completado |
-| 2 | `Sprint2` | Integrante 2 | Conexión Supabase, operaciones POST y GET en `app.js` | ⏳ Pendiente |
-| 3 | `Sprint3` | Integrante 3 | Despliegue Vercel, pruebas QA, documentación final | ⏳ Pendiente |
+| 1 | `Sprint1-Ayca` | Integrante 1 | Infraestructura Supabase + repositorio + UI estática HTML/CSS |  Completado |
+| 2 | `Sprint2` | Integrante 2 | Conexión Supabase, operaciones POST y GET en `app.js` |  Pendiente |
+| 3 | `Sprint3` | Integrante 3 | Despliegue Vercel, pruebas QA, documentación final |  Pendiente |
 
 ## Instrucciones para el Integrante 2 (Día 2)
 
