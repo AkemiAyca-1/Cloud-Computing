@@ -1,1 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="FuelWatch Bolivia — Plataforma colaborativa para monitorear la calidad del combustible en estaciones de servicio." />
+    <title>FuelWatch Bolivia — Monitoreo de Combustible</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛽</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <!-- Partículas decorativas -->
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <header id="app-header"></header>
 
+    <main>
+      <section id="dashboard" class="dashboard-grid">
+        <div class="stat-card" id="stat-total">
+          <div class="stat-icon">📋</div>
+          <div class="stat-info">
+            <span class="stat-value" id="total-reportes">0</span>
+            <span class="stat-label">Total reportes</span>
+          </div>
+        </div>
+        <div class="stat-card" id="stat-surtidores">
+          <div class="stat-icon">🏪</div>
+          <div class="stat-info">
+            <span class="stat-value" id="total-surtidores">0</span>
+            <span class="stat-label">Surtidores monitoreados</span>
+          </div>
+        </div>
+        <div class="stat-card" id="stat-operables">
+          <div class="stat-icon">✅</div>
+          <div class="stat-info">
+            <span class="stat-value" id="total-operables">0</span>
+            <span class="stat-label">Reportes operables</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card-danger" id="stat-fallas">
+          <div class="stat-icon">🚨</div>
+          <div class="stat-info">
+            <span class="stat-value" id="total-fallas">0</span>
+            <span class="stat-label">Fallas detectadas</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="charts-row">
+        <div class="card card-chart">
+          <div class="card-header">
+            <h2>Estado General</h2>
+            <p class="card-description">Proporción de reportes operables vs fallas</p>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-donut"></canvas>
+          </div>
+        </div>
+        <div class="card card-chart">
+          <div class="card-header">
+            <h2>Reportes por Surtidor</h2>
+            <p class="card-description">Cantidad de reportes operables y fallas por estación</p>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-barras"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="charts-row">
+        <div class="card card-chart">
+          <div class="card-header">
+            <h2>🏥 Surtidores Saludables</h2>
+            <p class="card-description">Surtidores registrados que no presentan fallas detectadas</p>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-saludables"></canvas>
+          </div>
+        </div>
+        <div class="card card-chart">
+          <div class="card-header">
+            <h2>Línea de Tiempo — Fallas Detectadas</h2>
+            <p class="card-description">Evolución de reportes de falla a lo largo del tiempo</p>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-timeline"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <div class="content-grid">
+        <section class="card card-form">
+          <div class="card-header">
+            <h2>Registrar Carga</h2>
+            <p class="card-description">Registra tu recarga de combustible. El estado inicia como <strong>Operable</strong> y podrás actualizarlo después si detectas fallas.</p>
+          </div>
+          <form id="form-reporte">
+            <div class="form-group">
+              <label for="surtidor">Nombre del surtidor</label>
+              <div class="input-wrapper">
+                <span class="input-icon">🏪</span>
+                <input type="text" id="surtidor" placeholder="Ej: Estación Central - Surtidor 3" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="fecha">Fecha de recarga</label>
+              <div class="input-wrapper">
+                <span class="input-icon">📅</span>
+                <input type="date" id="fecha" required />
+              </div>
+            </div>
+            <div class="form-status-preview">
+              <span class="status-preview-badge">✅ Operable</span>
+              <span class="status-preview-hint">Estado asignado automáticamente</span>
+            </div>
+            <button type="submit" id="btn-guardar">
+              <span class="btn-text">Registrar Recarga</span>
+            </button>
+          </form>
+        </section>
+
+        <section class="card card-table">
+          <div class="card-header">
+            <h2>Panel de Monitoreo</h2>
+            <p class="card-description">Si tu vehículo presenta fallas después de la carga, actualiza el estado del reporte</p>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Surtidor</th>
+                  <th>Fecha</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-body"></tbody>
+            </table>
+          </div>
+          <div id="alertas"></div>
+        </section>
+      </div>
+    </main>
+
+    <div id="modal-overlay" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>⚠️ Reportar Falla</h3>
+          <button class="modal-close" id="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>¿Estás seguro de que deseas marcar este reporte como <strong>"Falla detectada"</strong>?</p>
+          <div class="modal-detail" id="modal-detail"></div>
+          <p class="modal-hint">Esta acción indica que tu vehículo presentó problemas después de cargar combustible en este surtidor.</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" id="modal-cancel">Cancelar</button>
+          <button class="btn-confirm" id="modal-confirm">Confirmar Falla</button>
+        </div>
+      </div>
+    </div>
+
+    <footer id="app-footer"></footer>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
