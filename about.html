@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Conoce la misión de FuelWatch Bolivia: proteger a los conductores del combustible adulterado mediante el monitoreo colaborativo." />
+    <title>Acerca de — FuelWatch Bolivia</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛽</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/about.css" />
+  </head>
+  <body>
+    <header id="app-header"></header>
+
+    <main class="about-main">
+      <section class="hero-section reveal">
+        <div class="hero-text">
+          <span class="hero-badge">🛡️ Protegiendo conductores</span>
+          <h2 class="hero-title">Tu combustible, nuestra prioridad</h2>
+          <p class="hero-description">FuelWatch Bolivia es una plataforma colaborativa que permite a los conductores reportar y consultar la calidad del combustible en estaciones de servicio, previniendo daños mecánicos causados por gasolina adulterada.</p>
+          <a href="index.html" class="hero-cta">Ir al Dashboard →</a>
+        </div>
+        <div class="hero-image">
+          <img src="img/hero.png" alt="Monitoreo de combustible" />
+        </div>
+      </section>
+
+      <section class="problem-section reveal">
+        <div class="section-header">
+          <span class="section-number">01</span>
+          <h2>El Problema</h2>
+        </div>
+        <div class="problem-grid">
+          <div class="problem-card">
+            <div class="problem-icon">⛽</div>
+            <h3>Combustible Adulterado</h3>
+            <p>En Bolivia, miles de conductores enfrentan el riesgo de cargar combustible de baja calidad que puede dañar el motor de sus vehículos.</p>
+          </div>
+          <div class="problem-card">
+            <div class="problem-icon">🔧</div>
+            <h3>Reparaciones Costosas</h3>
+            <p>Los daños por combustible adulterado generan gastos de reparación que pueden superar los miles de bolivianos.</p>
+          </div>
+          <div class="problem-card">
+            <div class="problem-icon">🤷</div>
+            <h3>Sin Información</h3>
+            <p>Actualmente no existe un sistema público donde los conductores puedan consultar reportes sobre la calidad del combustible por surtidor.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="solution-section reveal">
+        <div class="solution-content">
+          <div class="section-header">
+            <span class="section-number">02</span>
+            <h2>Nuestra Solución</h2>
+          </div>
+          <p class="solution-text">FuelWatch Bolivia funciona como un sistema de <strong>crowdsourcing</strong>: los mismos conductores alimentan la base de datos con sus experiencias reales después de cargar combustible.</p>
+          <div class="solution-steps">
+            <div class="step">
+              <div class="step-number">1</div>
+              <div class="step-info">
+                <h4>Registra tu carga</h4>
+                <p>Ingresa el nombre del surtidor y la fecha de tu recarga. El estado se marca como <strong>Operable</strong> por defecto.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">2</div>
+              <div class="step-info">
+                <h4>Monitorea tu vehículo</h4>
+                <p>Observa el comportamiento de tu vehículo durante los días siguientes a la carga de combustible.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">3</div>
+              <div class="step-info">
+                <h4>Reporta si hay fallas</h4>
+                <p>Si detectas problemas, actualiza tu reporte a <strong>"Falla detectada"</strong>. Esto alerta a otros conductores.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">4</div>
+              <div class="step-info">
+                <h4>Consulta antes de cargar</h4>
+                <p>Revisa el dashboard antes de ir a un surtidor. Los surtidores con múltiples fallas se marcan con alertas visibles.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="solution-image">
+          <img src="img/community.png" alt="Comunidad colaborativa" />
+        </div>
+      </section>
+
+      <section class="arch-section reveal">
+        <div class="arch-image">
+          <img src="img/architecture.png" alt="Arquitectura cloud" />
+        </div>
+        <div class="arch-content">
+          <div class="section-header">
+            <span class="section-number">03</span>
+            <h2>Arquitectura Cloud</h2>
+          </div>
+          <p class="arch-text">El sistema utiliza una arquitectura <strong>100% Serverless</strong>, sin necesidad de administrar servidores propios.</p>
+          <div class="tech-stack">
+            <div class="tech-item">
+              <div class="tech-icon">🌐</div>
+              <div>
+                <h4>Frontend — Vercel</h4>
+                <p>Hosting con despliegue continuo (CI/CD) conectado a GitHub.</p>
+              </div>
+            </div>
+            <div class="tech-item">
+              <div class="tech-icon">🗄️</div>
+              <div>
+                <h4>Backend — Supabase</h4>
+                <p>Base de datos PostgreSQL con API REST automática (BaaS).</p>
+              </div>
+            </div>
+            <div class="tech-item">
+              <div class="tech-icon">⚡</div>
+              <div>
+                <h4>Bundler — Vite</h4>
+                <p>Desarrollo rápido con HMR y build optimizado para producción.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-section reveal">
+        <div class="cta-content">
+          <h2>¿Listo para contribuir?</h2>
+          <p>Únete a la comunidad de conductores que protegen a otros compartiendo sus experiencias con el combustible.</p>
+          <a href="index.html" class="hero-cta">Registrar mi primera carga →</a>
+        </div>
+      </section>
+    </main>
+
+    <footer id="app-footer"></footer>
+
+    <script type="module" src="js/about.js"></script>
+  </body>
+</html>
