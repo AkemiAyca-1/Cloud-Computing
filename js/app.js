@@ -224,25 +224,54 @@ function renderCharts(data) {
   const failData = labels.map(l => porSurtidor[l].fail);
 
   if (chartBarrasInstance) chartBarrasInstance.destroy();
+  
+  const isMobile = window.innerWidth <= 768;
+  
   chartBarrasInstance = new Chart(canvasBarras, {
     type: 'bar',
     data: {
       labels,
       datasets: [
-        { label: 'Operable', data: okData, backgroundColor: 'rgba(16,185,129,0.7)', borderColor: '#10b981', borderWidth: 1, borderRadius: 4 },
-        { label: 'Falla', data: failData, backgroundColor: 'rgba(239,68,68,0.7)', borderColor: '#ef4444', borderWidth: 1, borderRadius: 4 }
+        { label: 'Operable', data: okData, backgroundColor: 'rgba(16,185,129,0.7)', borderColor: '#10b981', borderWidth: 2, borderRadius: 4 },
+        { label: 'Falla', data: failData, backgroundColor: 'rgba(239,68,68,0.7)', borderColor: '#ef4444', borderWidth: 2, borderRadius: 4 }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: true,
+      indexAxis: isMobile ? 'y' : 'x',
       scales: {
-        x: { stacked: true, ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }, grid: { color: 'rgba(148,163,184,0.08)' } },
-        y: { stacked: true, beginAtZero: true, ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 }, stepSize: 1 }, grid: { color: 'rgba(148,163,184,0.08)' } }
+        x: { 
+          stacked: true, 
+          ticks: { color: '#94a3b8', font: { family: 'Inter', size: isMobile ? 9 : 11 } }, 
+          grid: { color: 'rgba(148,163,184,0.08)' } 
+        },
+        y: { 
+          stacked: true, 
+          beginAtZero: true, 
+          ticks: { color: '#94a3b8', font: { family: 'Inter', size: isMobile ? 10 : 11 }, stepSize: 1 }, 
+          grid: { color: 'rgba(148,163,184,0.08)' } 
+        }
       },
       plugins: {
-        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 12 }, padding: 16, usePointStyle: true, pointStyleWidth: 10 } },
-        tooltip: { backgroundColor: '#1e293b', titleColor: '#f1f5f9', bodyColor: '#94a3b8', borderColor: 'rgba(148,163,184,0.2)', borderWidth: 1, padding: 12, cornerRadius: 8 }
+        legend: { 
+          position: isMobile ? 'top' : 'bottom', 
+          labels: { color: '#94a3b8', font: { family: 'Inter', size: isMobile ? 10 : 12 }, padding: isMobile ? 8 : 16, usePointStyle: true, pointStyleWidth: 8 } 
+        },
+        tooltip: { 
+          backgroundColor: '#1e293b', 
+          titleColor: '#f1f5f9', 
+          bodyColor: '#94a3b8', 
+          borderColor: 'rgba(148,163,184,0.2)', 
+          borderWidth: 1, 
+          padding: 12, 
+          cornerRadius: 8,
+          callbacks: {
+            afterLabel: function(context) {
+              return 'Surtidor: ' + context.label;
+            }
+          }
+        }
       }
     }
   });
