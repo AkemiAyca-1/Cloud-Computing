@@ -392,8 +392,8 @@ function renderChartsSaludables(data) {
           display: true,
           text: `Total: ${totalSurtidores} surtidores registrados`,
           color: '#64748b',
-          font: { family: 'Inter', size: 14, weight: '500' },
-          padding: { bottom: 20 }
+          font: { family: 'Inter', size: window.innerWidth <= 480 ? 11 : window.innerWidth <= 768 ? 12 : 14, weight: '500' },
+          padding: { bottom: window.innerWidth <= 480 ? 10 : 20 }
         }
       }
     }
