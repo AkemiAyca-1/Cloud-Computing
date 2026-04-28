@@ -26,9 +26,32 @@ const modalClose = document.getElementById("modal-close");
 
 let reporteSeleccionado = null;
 
-// Sistema de rate limiting por localStorage (1 hora por surtidor)
-const RATE_LIMIT_KEY = 'reportes_rate_limit';
+// Sistema de rate limiting por IP (1 hora global, no por surtidor)
+const RATE_LIMIT_KEY = 'reportes_rate_limit_v2';
 const RATE_LIMIT_DURATION = 60 * 60 * 1000; // 1 hora en milisegundos
+let userFingerprint = null;
+
+// Obtener huella digital combinando IP + navegador
+async function obtenerFingerprint() {
+  if (userFingerprint) return userFingerprint;
+  
+  try {
+    // Obtener IP publica
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    const ip = data.ip;
+    
+    // Combinar con info del navegador para mayor unicidad
+    const browserInfo = navigator.userAgent + navigator.language + screen.width + screen.height;
+    userFingerprint = `${ip}_${btoa(browserInfo).slice(0, 20)}`;
+    return userFingerprint;
+  } catch {
+    // Fallback: usar solo info del navegador si no se puede obtener IP
+    const browserInfo = navigator.userAgent + navigator.language + screen.width + screen.height;
+    userFingerprint = `local_${btoa(browserInfo).slice(0, 30)}`;
+    return userFingerprint;
+  }
+}
 
 function getRateLimitData() {
   try {
@@ -47,9 +70,11 @@ function setRateLimitData(data) {
   }
 }
 
-function puedeReportar(surtidor) {
+async function puedeReportar() {
+  const fingerprint = await obtenerFingerprint();
   const data = getRateLimitData();
-  const lastReport = data[surtidor];
+  const lastReport = data[fingerprint];
+  
   if (!lastReport) return { allowed: true };
   
   const ahora = Date.now();
@@ -63,9 +88,10 @@ function puedeReportar(surtidor) {
   return { allowed: false, minutos };
 }
 
-function registrarReporte(surtidor) {
+async function registrarReporte() {
+  const fingerprint = await obtenerFingerprint();
   const data = getRateLimitData();
-  data[surtidor] = Date.now();
+  data[fingerprint] = Date.now();
   setRateLimitData(data);
 }
 
@@ -74,17 +100,18 @@ function limpiarReportesExpirados() {
   const ahora = Date.now();
   const dataLimpia = {};
   
-  for (const [surtidor, timestamp] of Object.entries(data)) {
+  for (const [key, timestamp] of Object.entries(data)) {
     if (ahora - timestamp < RATE_LIMIT_DURATION) {
-      dataLimpia[surtidor] = timestamp;
+      dataLimpia[key] = timestamp;
     }
   }
   
   setRateLimitData(dataLimpia);
 }
 
-// Limpiar reportes expirados al iniciar
+// Limpiar reportes expirados e inicializar fingerprint al cargar
 limpiarReportesExpirados();
+obtenerFingerprint();
 
 // Obtener fecha local correctamente (evita problemas de timezone)
 function obtenerFechaLocal() {
@@ -326,7 +353,7 @@ function renderChartsSaludables(data) {
         legend: {
           position: 'bottom',
           labels: {
-            color: '#94a3b8',
+            color: '#f1f5f9',
             font: { family: 'Inter', size: 12 },
             padding: 16,
             usePointStyle: true,
@@ -337,6 +364,7 @@ function renderChartsSaludables(data) {
                 text: `${label}: ${data.datasets[0].data[i]} surtidores`,
                 fillStyle: data.datasets[0].backgroundColor[i],
                 strokeStyle: data.datasets[0].borderColor[i],
+                fontColor: '#f1f5f9',
                 lineWidth: 2,
                 hidden: false,
                 index: i
@@ -389,7 +417,9 @@ async function cargarDatos() {
         ❌ Error al cargar los datos.</td></tr>`;
       return;
     }
-    renderTabla(data);
+    // Tabla muestra solo los 10 mas recientes, pero alertas y graficos usan TODOS los datos
+    const dataTabla = data.slice(0, 10);
+    renderTabla(dataTabla, data);
     actualizarDashboard(data);
     renderCharts(data);
     renderChartsSaludables(data);
@@ -407,21 +437,26 @@ function formatearFecha(fechaStr) {
   return fecha.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-function renderTabla(data) {
+function renderTabla(dataTabla, todosLosDatos) {
   tablaBody.innerHTML = "";
-  if (data.length === 0) {
+  if (dataTabla.length === 0) {
     tablaBody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:3rem;color:var(--text-secondary);">
       📝 No hay reportes registrados aún.<br><small>Sé el primero en agregar un reporte.</small></td></tr>`;
     alertasContainer.innerHTML = "";
     return;
   }
+  
+  // Calcular alertas basadas en TODOS los datos, no solo los 10 mostrados
   const alertas = {};
-  const fragment = document.createDocumentFragment();
-
-  data.forEach((item, index) => {
+  todosLosDatos.forEach((item) => {
     if (item.estado === "Falla detectada") {
       alertas[item.surtidor] = (alertas[item.surtidor] || 0) + 1;
     }
+  });
+  
+  const fragment = document.createDocumentFragment();
+
+  dataTabla.forEach((item, index) => {
     const estadoClass = item.estado === "Operable" ? "estado-operable" : "estado-falla";
     const fechaF = formatearFecha(item.fecha);
     const tr = document.createElement('tr');
@@ -431,7 +466,7 @@ function renderTabla(data) {
     if (item.estado === "Operable") {
       accionHTML = `<button class="btn-reportar-falla" data-id="${item.id}" data-surtidor="${item.surtidor}" data-fecha="${item.fecha}">Reportar falla</button>`;
     } else {
-      accionHTML = `<button class="btn-operativa" data-id="${item.id}" data-surtidor="${item.surtidor}" data-fecha="${item.fecha}">Funciona correctamente</button>`;
+      accionHTML = `<span class="estado-ya-reportado">Ya reportado</span>`;
     }
 
     tr.innerHTML = `
@@ -451,52 +486,26 @@ function renderTabla(data) {
   }, 50);
 
   tablaBody.querySelectorAll('.btn-reportar-falla').forEach(btn => {
-    btn.addEventListener('click', () => abrirModal(btn.dataset.id, btn.dataset.surtidor, btn.dataset.fecha, 'falla'));
-  });
-
-  tablaBody.querySelectorAll('.btn-operativa').forEach(btn => {
-    btn.addEventListener('click', () => abrirModal(btn.dataset.id, btn.dataset.surtidor, btn.dataset.fecha, 'operativa'));
+    btn.addEventListener('click', () => abrirModal(btn.dataset.id, btn.dataset.surtidor, btn.dataset.fecha));
   });
 
   mostrarAlertas(alertas);
 }
 
-let modalAccion = 'falla'; // 'falla' o 'operativa'
 let surtidorActual = null;
 
-function abrirModal(id, surtidor, fecha, accion = 'falla') {
-  // Verificar rate limiting
-  const rateCheck = puedeReportar(surtidor);
+async function abrirModal(id, surtidor, fecha) {
+  // Verificar rate limiting por IP
+  const rateCheck = await puedeReportar();
   if (!rateCheck.allowed) {
-    mostrarNotificacion(`Ya enviaste un reporte para "${surtidor}" recientemente. Intenta de nuevo en ${rateCheck.minutos} minuto${rateCheck.minutos > 1 ? 's' : ''}.`, 'error');
+    mostrarNotificacion(`Ya enviaste un reporte recientemente. Intenta de nuevo en ${rateCheck.minutos} minuto${rateCheck.minutos > 1 ? 's' : ''}.`, 'error');
     return;
   }
   
   reporteSeleccionado = id;
-  modalAccion = accion;
   surtidorActual = surtidor;
   const fechaF = formatearFecha(fecha);
   modalDetail.innerHTML = `<strong>${surtidor}</strong><br>Fecha de carga: ${fechaF}`;
-  
-  const modalTitle = document.querySelector('.modal-header h3');
-  const modalText = document.querySelector('.modal-body > p:first-of-type');
-  const modalHint = document.querySelector('.modal-hint');
-  
-  if (accion === 'operativa') {
-    modalTitle.textContent = 'Confirmar Buena Calidad';
-    modalText.innerHTML = '¿Confirmas que el combustible de este surtidor <strong>funciona correctamente</strong>?';
-    modalHint.textContent = 'Este reporte positivo ayuda a otros usuarios a identificar surtidores confiables.';
-    modalConfirm.textContent = 'Confirmar Operativa';
-    modalConfirm.classList.remove('btn-danger');
-    modalConfirm.classList.add('btn-success');
-  } else {
-    modalTitle.textContent = 'Reportar Falla';
-    modalText.innerHTML = '¿Estás seguro de que deseas marcar este reporte como <strong>"Falla detectada"</strong>?';
-    modalHint.textContent = 'Esta accion indica que tu vehiculo presento problemas despues de cargar combustible en este surtidor.';
-    modalConfirm.textContent = 'Confirmar Falla';
-    modalConfirm.classList.remove('btn-success');
-    modalConfirm.classList.add('btn-danger');
-  }
   
   modalOverlay.classList.remove('hidden');
 }
@@ -516,26 +525,19 @@ modalConfirm.addEventListener('click', async () => {
   modalConfirm.disabled = true;
   modalConfirm.textContent = 'Actualizando...';
 
-  const nuevoEstado = modalAccion === 'operativa' ? 'Operable' : 'Falla detectada';
-
   try {
     const { error } = await supabaseClient
       .from("reportes")
-      .update({ estado: nuevoEstado, updated_at: new Date().toISOString() })
+      .update({ estado: 'Falla detectada', updated_at: new Date().toISOString() })
       .eq("id", reporteSeleccionado);
 
     if (error) {
       console.error('Error actualizando:', error);
-      mostrarNotificacion(`Error al ${modalAccion === 'operativa' ? 'confirmar operativa' : 'reportar la falla'}`, 'error');
+      mostrarNotificacion('Error al reportar la falla', 'error');
     } else {
-      // Registrar en localStorage para rate limiting
-      if (surtidorActual) {
-        registrarReporte(surtidorActual);
-      }
-      const mensaje = modalAccion === 'operativa' 
-        ? 'Surtidor marcado como operativo exitosamente' 
-        : 'Falla reportada exitosamente';
-      mostrarNotificacion(mensaje, 'success');
+      // Registrar en localStorage para rate limiting por IP
+      await registrarReporte();
+      mostrarNotificacion('Falla reportada exitosamente', 'success');
       await cargarDatos();
     }
   } catch (err) {
@@ -543,7 +545,7 @@ modalConfirm.addEventListener('click', async () => {
     mostrarNotificacion('Error inesperado', 'error');
   } finally {
     modalConfirm.disabled = false;
-    modalConfirm.textContent = modalAccion === 'operativa' ? 'Confirmar Operativa' : 'Confirmar Falla';
+    modalConfirm.textContent = 'Confirmar Falla';
     cerrarModal();
   }
 });
@@ -598,9 +600,18 @@ function mostrarErrorCampo(campoId, mensaje) {
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!validarFormulario()) return;
-  setLoading(true);
+  
   const surtidor = document.getElementById("surtidor").value.trim();
   const fecha = document.getElementById("fecha").value;
+
+  // Verificar rate limiting por IP antes de registrar
+  const rateCheck = await puedeReportar();
+  if (!rateCheck.allowed) {
+    mostrarNotificacion(`Ya registraste una recarga recientemente. Intenta de nuevo en ${rateCheck.minutos} minuto${rateCheck.minutos > 1 ? 's' : ''}.`, 'error');
+    return;
+  }
+
+  setLoading(true);
 
   try {
     const { error } = await supabaseClient
@@ -610,11 +621,13 @@ form.addEventListener("submit", async (e) => {
       console.error('Error guardando:', error);
       mostrarNotificacion('Error al guardar el reporte', 'error');
     } else {
+      // Registrar en localStorage para rate limiting por IP
+      await registrarReporte();
       mostrarNotificacion('Recarga registrada exitosamente', 'success');
       form.classList.add('success-animation');
       setTimeout(() => form.classList.remove('success-animation'), 800);
       form.reset();
-      fechaInput.value = new Date().toISOString().split("T")[0];
+      fechaInput.value = obtenerFechaLocal();
       setTimeout(() => cargarDatos(), 300);
     }
   } catch (err) {
