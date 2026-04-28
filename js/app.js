@@ -26,8 +26,9 @@ const modalClose = document.getElementById("modal-close");
 
 let reporteSeleccionado = null;
 
-// Sistema de rate limiting por IP (1 hora global, no por surtidor)
-const RATE_LIMIT_KEY = 'reportes_rate_limit_v2';
+// Sistema de rate limiting separado para RECARGAS y REPORTES DE FALLA
+const RATE_LIMIT_KEY_RECARGAS = 'recargas_rate_limit_v1';
+const RATE_LIMIT_KEY_FALLAS = 'fallas_rate_limit_v1';
 const RATE_LIMIT_DURATION = 60 * 60 * 1000; // 1 hora en milisegundos
 let userFingerprint = null;
 
@@ -53,32 +54,34 @@ async function obtenerFingerprint() {
   }
 }
 
-function getRateLimitData() {
+function getRateLimitData(tipo) {
   try {
-    const data = localStorage.getItem(RATE_LIMIT_KEY);
+    const key = tipo === 'recargas' ? RATE_LIMIT_KEY_RECARGAS : RATE_LIMIT_KEY_FALLAS;
+    const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : {};
   } catch {
     return {};
   }
 }
 
-function setRateLimitData(data) {
+function setRateLimitData(tipo, data) {
   try {
-    localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(data));
+    const key = tipo === 'recargas' ? RATE_LIMIT_KEY_RECARGAS : RATE_LIMIT_KEY_FALLAS;
+    localStorage.setItem(key, JSON.stringify(data));
   } catch {
     // Si localStorage no esta disponible, continuamos sin rate limiting
   }
 }
 
-async function puedeReportar() {
+async function puedeRegistrarRecarga() {
   const fingerprint = await obtenerFingerprint();
-  const data = getRateLimitData();
-  const lastReport = data[fingerprint];
+  const data = getRateLimitData('recargas');
+  const lastRecarga = data[fingerprint];
   
-  if (!lastReport) return { allowed: true };
+  if (!lastRecarga) return { allowed: true };
   
   const ahora = Date.now();
-  const tiempoRestante = RATE_LIMIT_DURATION - (ahora - lastReport);
+  const tiempoRestante = RATE_LIMIT_DURATION - (ahora - lastRecarga);
   
   if (tiempoRestante <= 0) {
     return { allowed: true };
@@ -88,25 +91,63 @@ async function puedeReportar() {
   return { allowed: false, minutos };
 }
 
-async function registrarReporte() {
+async function puedeReportarFalla() {
   const fingerprint = await obtenerFingerprint();
-  const data = getRateLimitData();
+  const data = getRateLimitData('fallas');
+  const lastFalla = data[fingerprint];
+  
+  if (!lastFalla) return { allowed: true };
+  
+  const ahora = Date.now();
+  const tiempoRestante = RATE_LIMIT_DURATION - (ahora - lastFalla);
+  
+  if (tiempoRestante <= 0) {
+    return { allowed: true };
+  }
+  
+  const minutos = Math.ceil(tiempoRestante / 60000);
+  return { allowed: false, minutos };
+}
+
+async function registrarRecarga() {
+  const fingerprint = await obtenerFingerprint();
+  const data = getRateLimitData('recargas');
   data[fingerprint] = Date.now();
-  setRateLimitData(data);
+  setRateLimitData('recargas', data);
+}
+
+async function registrarFalla() {
+  const fingerprint = await obtenerFingerprint();
+  const data = getRateLimitData('fallas');
+  data[fingerprint] = Date.now();
+  setRateLimitData('fallas', data);
 }
 
 function limpiarReportesExpirados() {
-  const data = getRateLimitData();
+  // Limpiar recargas expiradas
+  const dataRecargas = getRateLimitData('recargas');
   const ahora = Date.now();
-  const dataLimpia = {};
+  const dataRecargasLimpia = {};
   
-  for (const [key, timestamp] of Object.entries(data)) {
+  for (const [key, timestamp] of Object.entries(dataRecargas)) {
     if (ahora - timestamp < RATE_LIMIT_DURATION) {
-      dataLimpia[key] = timestamp;
+      dataRecargasLimpia[key] = timestamp;
     }
   }
   
-  setRateLimitData(dataLimpia);
+  setRateLimitData('recargas', dataRecargasLimpia);
+  
+  // Limpiar fallas expiradas
+  const dataFallas = getRateLimitData('fallas');
+  const dataFallasLimpia = {};
+  
+  for (const [key, timestamp] of Object.entries(dataFallas)) {
+    if (ahora - timestamp < RATE_LIMIT_DURATION) {
+      dataFallasLimpia[key] = timestamp;
+    }
+  }
+  
+  setRateLimitData('fallas', dataFallasLimpia);
 }
 
 // Limpiar reportes expirados e inicializar fingerprint al cargar
@@ -120,6 +161,11 @@ function obtenerFechaLocal() {
   const month = String(hoy.getMonth() + 1).padStart(2, '0');
   const day = String(hoy.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+// Obtener fecha y hora para almacenarla en la BD
+function obtenerFechaYHoraISO() {
+  return new Date().toISOString();
 }
 
 fechaInput.value = obtenerFechaLocal();
@@ -408,7 +454,7 @@ async function cargarDatos() {
 
   try {
     const { data, error } = await supabaseClient
-      .from("reportes").select("*").order("fecha", { ascending: false });
+      .from("reportes").select("*").order("created_at", { ascending: false });
 
     if (error) {
       console.error('Error cargando datos:', error);
@@ -431,7 +477,15 @@ async function cargarDatos() {
 }
 
 function formatearFecha(fechaStr) {
-  // Evita el problema de timezone interpretando la fecha como local
+  // Si es ISO string (con hora), formatear con hora
+  if (fechaStr.includes('T')) {
+    const fecha = new Date(fechaStr);
+    const fechaFormato = fecha.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
+    const horaFormato = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${fechaFormato} - ${horaFormato}h`;
+  }
+  
+  // Si es fecha simple (YYYY-MM-DD), formatear sin hora
   const [year, month, day] = fechaStr.split('-').map(Number);
   const fecha = new Date(year, month - 1, day);
   return fecha.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -495,17 +549,17 @@ function renderTabla(dataTabla, todosLosDatos) {
 let surtidorActual = null;
 
 async function abrirModal(id, surtidor, fecha) {
-  // Verificar rate limiting por IP
-  const rateCheck = await puedeReportar();
+  // Verificar rate limiting por IP SOLO PARA REPORTAR FALLA
+  const rateCheck = await puedeReportarFalla();
   if (!rateCheck.allowed) {
-    mostrarNotificacion(`Ya enviaste un reporte recientemente. Intenta de nuevo en ${rateCheck.minutos} minuto${rateCheck.minutos > 1 ? 's' : ''}.`, 'error');
+    mostrarNotificacion(`Ya reportaste una falla recientemente. Intenta de nuevo en ${rateCheck.minutos} minuto${rateCheck.minutos > 1 ? 's' : ''}.`, 'error');
     return;
   }
   
   reporteSeleccionado = id;
   surtidorActual = surtidor;
   const fechaF = formatearFecha(fecha);
-  modalDetail.innerHTML = `<strong>${surtidor}</strong><br>Fecha de carga: ${fechaF}`;
+  modalDetail.innerHTML = `<strong>${surtidor}</strong><br>Recarga registrada: ${fechaF}`;
   
   modalOverlay.classList.remove('hidden');
 }
@@ -535,9 +589,10 @@ modalConfirm.addEventListener('click', async () => {
       console.error('Error actualizando:', error);
       mostrarNotificacion('Error al reportar la falla', 'error');
     } else {
-      // Registrar en localStorage para rate limiting por IP
-      await registrarReporte();
+      // Registrar en localStorage para rate limiting por IP (solo para fallas)
+      await registrarFalla();
       mostrarNotificacion('Falla reportada exitosamente', 'success');
+      cerrarModal();
       await cargarDatos();
     }
   } catch (err) {
@@ -546,7 +601,6 @@ modalConfirm.addEventListener('click', async () => {
   } finally {
     modalConfirm.disabled = false;
     modalConfirm.textContent = 'Confirmar Falla';
-    cerrarModal();
   }
 });
 
@@ -604,8 +658,8 @@ form.addEventListener("submit", async (e) => {
   const surtidor = document.getElementById("surtidor").value.trim();
   const fecha = document.getElementById("fecha").value;
 
-  // Verificar rate limiting por IP antes de registrar
-  const rateCheck = await puedeReportar();
+  // Verificar rate limiting por IP antes de registrar una recarga
+  const rateCheck = await puedeRegistrarRecarga();
   if (!rateCheck.allowed) {
     mostrarNotificacion(`Ya registraste una recarga recientemente. Intenta de nuevo en ${rateCheck.minutos} minuto${rateCheck.minutos > 1 ? 's' : ''}.`, 'error');
     return;
@@ -621,13 +675,13 @@ form.addEventListener("submit", async (e) => {
       console.error('Error guardando:', error);
       mostrarNotificacion('Error al guardar el reporte', 'error');
     } else {
-      // Registrar en localStorage para rate limiting por IP
-      await registrarReporte();
+      // Registrar en localStorage para rate limiting por IP (solo para recargas)
+      await registrarRecarga();
       mostrarNotificacion('Recarga registrada exitosamente', 'success');
       form.classList.add('success-animation');
       setTimeout(() => form.classList.remove('success-animation'), 800);
       form.reset();
-      fechaInput.value = obtenerFechaLocal();
+      document.getElementById("fecha").value = obtenerFechaLocal();
       setTimeout(() => cargarDatos(), 300);
     }
   } catch (err) {
@@ -643,4 +697,3 @@ document.getElementById("surtidor").addEventListener("input", function() {
 });
 
 cargarDatos();
-  
