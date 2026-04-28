@@ -123,10 +123,24 @@ Tienes dos opciones:
 4. Implementar la función de lectura (GET) que consulte la tabla `reportes` y renderice los resultados en `#table-body`.
 5. Verificar en entorno local con Live Server antes del commit.
 
-## Variables de entorno para Vercel (Día 3) ...
+### **Día 3: Despliegue Cloud, Seguridad RLS y QA Final**
 
-| Variable | Descripción |
-|----------|-------------|
-| `SUPABASE_URL` | URL del proyecto en Supabase |
-| `SUPABASE_ANON_KEY` | Clave pública anon de Supabase |
+#### **1. Arquitectura de Infraestructura en la Nube**
+Se implementó una solución orientada a la eficiencia y el "Zero Maintenance" mediante dos pilares fundamentales:
+* **Modelo Backend as a Service (BaaS) - Supabase:** Se delegó la gestión de la base de datos PostgreSQL, la seguridad a nivel de fila y la escalabilidad a un proveedor especializado. Esto permitió centralizar la persistencia de datos y la API sin administrar servidores propios.
+* **Modelo Platform as a Service (PaaS) - Vercel:** Se empleó Vercel para gestionar el ciclo de vida del despliegue. Esta plataforma habilita un pipeline de **Integración Continua (CI/CD)**, donde cada push al repositorio dispara un nuevo build y despliegue automático, reduciendo el margen de error humano.
+
+#### **2. Implementación de Seguridad y Control de Datos**
+* **Activación de Row Level Security (RLS):** Se habilitó el RLS en la tabla `reportes` de Supabase. Se configuraron políticas granulares mediante el panel de **Authentication**, permitiendo acceso de lectura (`SELECT`) y de inserción (`INSERT`) para usuarios anónimos, garantizando que la app sea funcional pero protegida.
+* **Sistema Anti-Sabotaje (Rate Limiting):** Para asegurar la integridad de la base de datos, se configuró una validación técnica basada en la **dirección IP** del cliente. Esta lógica restringe a los usuarios a registrar un máximo de **un reporte por hora**, mitigando intentos de sabotaje de datos o spam que pudieran afectar la fiabilidad de las alertas de combustible.
+
+#### **3. Pruebas de Calidad (QA) y Ajustes Técnicos**
+* **Corrección de Consistencia Temporal (Error UTC):** Se detectó y resolvió un desfase en el registro de fechas. Se ajustó la lógica del frontend y el tipo de dato en la base de datos a `DATE` para asegurar que los reportes se guarden y visualicen correctamente según la zona horaria de Bolivia, evitando discrepancias en el historial.
+* **Optimización UI para Crowdsourcing:** Se realizó una auditoría de **responsividad móvil**, ajustando el diseño de las tarjetas y tablas de datos para evitar el desbordamiento horizontal en pantallas pequeñas, asegurando que los conductores puedan usar la app cómodamente desde su vehículo.
+* **Poblamiento de Producción:** Se realizó la limpieza de datos de prueba y se cargó un set de **25 registros reales** de estaciones de servicio de La Paz y El Alto, simulando un entorno de operación real con reportes positivos y negativos cruzados.
+
+#### **4. Entregables de la Fase Final**
+* **Pipeline de Despliegue:** Configuración de variables de entorno (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) en el entorno de producción de Vercel.
+* **Estado Final:** ✅ Proyecto desplegado, asegurado y documentado para la sustentación.
+* **URL de Producción:** https://cloud-computing1-r3nrdefa6-leonardocharca4-8385s-projects.vercel.app
 
