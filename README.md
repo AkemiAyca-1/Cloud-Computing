@@ -142,5 +142,5 @@ Se implementó una solución orientada a la eficiencia y el "Zero Maintenance" m
 #### **4. Entregables de la Fase Final**
 * **Pipeline de Despliegue:** Configuración de variables de entorno (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) en el entorno de producción de Vercel.
 * **Estado Final:** ✅ Proyecto desplegado, asegurado y documentado para la sustentación.
-* **URL de Producción:** https://cloud-computing1-r3nrdefa6-leonardocharca4-8385s-projects.vercel.app
+* **URL de Producción:** https://cloud-computing1-77vxs65pr-leonardocharca4-8385s-projects.vercel.app
 
